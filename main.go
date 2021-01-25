@@ -18,12 +18,13 @@ func HandleError(err error) {
 
 func main() {
 	var s server.Server
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://anmol:anmol@cluster0.cnhws.mongodb.net/falconet?retryWrites=true&w=majority"))
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://anmol:anmol@cluster0.cnhws.mongodb.net/"))
 	HandleError(err)
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
-	s = server.New(client)
 	HandleError(err)
+	db := client.Database("falconet")
+	s = server.New(db)
 	defer client.Disconnect(ctx)
 	s.Listen(":8080")
 }

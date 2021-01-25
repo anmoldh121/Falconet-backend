@@ -1,20 +1,26 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
+	"time"
 
+	"github.com/chatApp/models"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthRequest struct {
-	Ph string
+	Ph string `bson:"Ph,omitempty"`
 }
 type AuthResponse struct {
-	Token string
+	Token  string
+	PeerId interface{}
 }
 
 func CreateToken(peerId string) (string, error) {
@@ -43,7 +49,7 @@ func VarifyToken(token string) (*jwt.Token, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Error while parsing token")
 		}
-		return []byte(os.Getenv("Access_Secret")), nil
+		return []byte("secretKey"), nil
 	})
 	if err != nil {
 		return nil, err
@@ -51,18 +57,33 @@ func VarifyToken(token string) (*jwt.Token, error) {
 	return tok, nil
 }
 
-func Register(c echo.Context) ([]byte, error) {
+func Register(c echo.Context, db *mongo.Database) (AuthResponse, error) {
 	req := c.Request().Body
+	var peerId interface{}
 	json_map := make(map[string]string)
 	err := json.NewDecoder(req).Decode(&json_map)
 	if err != nil {
-		return nil, err
+		return AuthResponse{}, err
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	collection := db.Collection("peers")
+	filter := bson.D{{"ph", json_map["Ph"]}}
+	update := bson.D{{"$set", bson.D{{"ph", json_map["Ph"]}}}}
+	opts := options.Update().SetUpsert(true)
+	insertResult, err := collection.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return AuthResponse{}, err
+	}
+	var results models.Peer
+	peerId = insertResult.UpsertedID
+	if insertResult.UpsertedID == nil {
+		err := collection.FindOne(ctx, bson.D{{"ph", json_map["Ph"]}}).Decode(&results)
+		if err != nil {
+			return AuthResponse{}, err
+		}
+		peerId = results.PeerId
 	}
 	token, _ := CreateToken(json_map["Ph"])
-	r := AuthResponse{Token: token}
-	res, err := json.Marshal(r)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	r := AuthResponse{Token: token, PeerId: peerId}
+	return r, nil
 }

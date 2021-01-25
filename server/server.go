@@ -9,7 +9,7 @@ import (
 
 type Server struct {
 	echo *echo.Echo
-	db   *mongo.Client
+	db   *mongo.Database
 }
 
 func (s *Server) Listen(addr string) {
@@ -20,10 +20,10 @@ func (s *Server) Listen(addr string) {
 	s.echo.Start(addr)
 }
 
-func New(client *mongo.Client) Server {
+func New(database *mongo.Database) Server {
 	e := echo.New()
 	return Server{
 		echo: e,
-		db:   client,
+		db:   database,
 	}
 }
