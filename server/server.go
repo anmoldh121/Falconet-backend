@@ -17,6 +17,7 @@ func (s *Server) Listen(addr string) {
 		return c.String(http.StatusOK, "WORKING")
 	})
 	s.echo.POST("/auth", s.Register)
+	s.echo.POST("/getpeer", s.GetPeer)
 	s.echo.Start(addr)
 }
 
