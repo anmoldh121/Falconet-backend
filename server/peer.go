@@ -14,7 +14,7 @@ func (s *Server) GetPeer(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(500, "Error in server")
 	}
-	resp, err := controller.GetPeer(json_map["ph"], s.db)
+	resp, err := controller.GetPeer(json_map["Ph"], s.db)
 	if err != nil {
 		return echo.NewHTTPError(500, "Error in server")
 	}
